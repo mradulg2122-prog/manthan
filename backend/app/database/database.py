@@ -12,6 +12,9 @@ from app.config import settings
 # Engine — connects to DB using DATABASE_URL from .env or SQLite fallback
 # ---------------------------------------------------------------------------
 db_url = settings.DATABASE_URL or "sqlite:///./eventflow.db"
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+
 connect_args = {"check_same_thread": False} if db_url.startswith("sqlite") else {}
 
 engine = create_engine(db_url, echo=settings.DEBUG, connect_args=connect_args)
