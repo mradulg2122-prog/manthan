@@ -10,3 +10,4 @@ Pillow>=11.1.0
 bcrypt>=4.2.1
 PyJWT>=2.9.0
 openpyxl>=3.1.5
+resend>=2.0.0
