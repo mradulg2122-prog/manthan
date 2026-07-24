@@ -117,9 +117,12 @@ def seed_volunteers():
 # ---------------------------------------------------------------------------
 # Startup & shutdown events
 # ---------------------------------------------------------------------------
+from app.database.database import engine
+
 @app.on_event("startup")
 async def on_startup():
     logger.info("🚀 %s is starting ...", settings.APP_NAME)
+    logger.info("📌 DATABASE_URL (API & Engine): %s", engine.url)
     create_tables()
     logger.info("✅ Database tables are ready.")
     seed_admin()

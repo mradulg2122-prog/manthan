@@ -45,42 +45,52 @@ def is_in_flight(pid: int) -> bool:
         return pid in _in_flight
 
 
+from app.database.database import SessionLocal, engine
+
 def _watch_loop() -> None:
     """Main loop — polls for unprocessed participants every POLL_INTERVAL seconds."""
-    logger.info("👁️  Watcher Started")
+    logger.info("👁️  Watcher Started | DATABASE_URL=%s", engine.url)
 
     while not _stop_event.is_set():
         try:
             db = SessionLocal()
             try:
-                # Query database state: find all pending participants where email_sent is False
+                db.expire_all()  # Ensure no stale cached objects
+                total_count = db.query(Participant).count()
+
+                # Query database state: find all pending participants where email_sent is False or None
                 new_participants = (
                     db.query(Participant.id)
                     .filter(
-                        (Participant.email_sent.is_(False))
+                        (Participant.email_sent == False)
                         | (Participant.email_sent.is_(None))
                     )
                     .order_by(Participant.id)
                     .all()
+                )
+                pids = [pid for (pid,) in new_participants]
+
+                logger.info(
+                    "👁️ Watcher Poll Started | DB=%s | Total=%d | Pending Count=%d | IDs=%s",
+                    engine.url,
+                    total_count,
+                    len(pids),
+                    pids,
                 )
             finally:
                 db.close()
 
             # Enqueue only participants not already in-flight
             enqueued = 0
-            pids = [pid for (pid,) in new_participants]
-            if pids:
-                logger.info("👁️ Watcher poll: found %d pending participant(s) IDs=%s | Queue size: %d",
-                            len(pids), pids, queue_manager.size())
-
             for pid in pids:
                 if not is_in_flight(pid):
                     mark_in_flight(pid)
                     queue_manager.enqueue(pid)
+                    logger.info("  -> Enqueued participant ID %d into FIFO queue", pid)
                     enqueued += 1
 
             if enqueued > 0:
-                logger.info("Enqueued %d new participant(s) into queue. Queue size: %d", enqueued, queue_manager.size())
+                logger.info("Enqueued %d new participant(s). Queue size: %d", enqueued, queue_manager.size())
                 # Kick off the worker (non-blocking if already running)
                 process_queue()
 
