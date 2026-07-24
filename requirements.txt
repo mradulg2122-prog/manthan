@@ -1,0 +1,25 @@
+# EventFlow AI - QR Based Smart Attendance System
+# Python 3.12
+
+# AI & Orchestration
+langchain
+langgraph
+
+# Data Processing
+pandas
+openpyxl
+
+# Environment
+python-dotenv
+
+# Google Sheets & Auth
+gspread
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+google-api-python-client
+
+# QR Code Generation & Scanning
+qrcode
+pillow
+opencv-python

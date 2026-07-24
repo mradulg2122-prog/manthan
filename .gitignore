@@ -1,0 +1,34 @@
+# Environment & secrets
+.env
+.env.local
+*.env
+
+# Credentials & logs
+credentials/*.json
+!credentials/.gitkeep
+logs/*.log
+!logs/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Node / Frontend
+node_modules/
+.next/
+dist/
+.output/
+.wrangler/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
