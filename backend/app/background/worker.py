@@ -29,6 +29,13 @@ _worker_lock = threading.Lock()
 # ---------------------------------------------------------------------------
 def _process_one(participant_id: int) -> None:
     """Run the full pipeline for one participant with skip + retry logic."""
+    # Mark in-flight immediately so the watcher won't duplicate-enqueue
+    try:
+        from app.background.watcher import mark_in_flight
+        mark_in_flight(participant_id)
+    except Exception:
+        pass
+
     db = SessionLocal()
     try:
         participant = db.query(Participant).filter(Participant.id == participant_id).first()

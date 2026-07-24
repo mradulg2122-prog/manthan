@@ -3,6 +3,9 @@ Registration API router.
 Handles POST /register for new participant sign-ups.
 """
 
+import logging
+import threading
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -13,6 +16,9 @@ from app.services.participant_service import (
     is_phone_duplicate_for_event,
     create_participant,
 )
+from app.background.worker import _process_one
+
+logger = logging.getLogger("eventflow.registration")
 
 router = APIRouter(tags=["Registration"])
 
@@ -40,9 +46,23 @@ def register_participant(
 
     # --- Save to database ---
     participant = create_participant(db, data)
+    pid = participant.id
+    logger.info("✓ Saved participant %d (%s) — triggering immediate pipeline.", pid, participant.name)
+
+    # --- Trigger pipeline immediately in a background thread ---
+    # _process_one uses its own SessionLocal, so it is safe to run
+    # after this request's db session has committed.
+    # The watcher still acts as a safety-net retry for any failures.
+    threading.Thread(
+        target=_process_one,
+        args=(pid,),
+        daemon=True,
+        name=f"pipeline-{pid}",
+    ).start()
 
     return ParticipantResponse(
         success=True,
         message="Registration successful.",
-        participant_id=participant.id,
+        participant_id=pid,
     )
+
