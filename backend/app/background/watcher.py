@@ -53,16 +53,12 @@ def _watch_loop() -> None:
         try:
             db = SessionLocal()
             try:
-                # Only find participants where registration_id IS NULL
-                # OR where QR is done but email failed (retry)
+                # Query database state: find all pending participants where email_sent is False
                 new_participants = (
                     db.query(Participant.id)
                     .filter(
-                        (Participant.registration_id.is_(None))
-                        | (
-                            (Participant.qr_sent.is_(True))
-                            & (Participant.email_sent.is_(False))
-                        )
+                        (Participant.email_sent.is_(False))
+                        | (Participant.email_sent.is_(None))
                     )
                     .order_by(Participant.id)
                     .all()
