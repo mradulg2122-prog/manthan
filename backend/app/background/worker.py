@@ -57,21 +57,21 @@ def _process_one(participant_id: int) -> None:
             logger.info("  Registration ID exists: %s — skipping.", reg_id)
 
         # ------------------------------------------------------------------
-        # Step 2 — QR Code (skip if qr_sent is already True)
+        # Step 2 — QR Code (regenerate if qr_sent is False OR file missing on disk)
         # ------------------------------------------------------------------
         qr_path = os.path.join("generated", "qr", f"{reg_id}.png")
-        if not participant.qr_sent:
+        if not participant.qr_sent or not os.path.exists(qr_path):
             try:
                 qr_path = generate_and_save_qr(reg_id)
                 participant.qr_sent = True
                 db.commit()
-                logger.info("  QR Generated: %s", qr_path)
+                logger.info("  ✓ QR Generated/Verified on disk: %s", qr_path)
             except Exception as e:
                 db.rollback()
-                logger.error("  QR generation FAILED: %s — skipping email.", e)
+                logger.error("  ✗ QR generation FAILED: %s — skipping email.", e)
                 return  # Don't send email if QR failed
         else:
-            logger.info("  QR already sent — skipping.")
+            logger.info("  ✓ QR already exists on disk: %s — skipping QR generation.", qr_path)
 
         # ------------------------------------------------------------------
         # Step 3 — Email (skip if email_sent is already True)
@@ -88,20 +88,20 @@ def _process_one(participant_id: int) -> None:
                 )
                 participant.email_sent = True
                 db.commit()
-                logger.info("  Email Sent to: %s", participant.email)
+                logger.info("  ✓ Email Sent to: %s", participant.email)
             except Exception as e:
                 db.rollback()
-                # Keep qr_sent=True, email_sent stays False → retry next cycle
-                logger.error("  Email FAILED: %s — will retry next cycle.", e)
+                # Keep email_sent = False so watcher can retry next cycle
+                logger.error("  ✗ Email FAILED for %s: %s — will retry next cycle.", participant.email, e)
                 return
         else:
-            logger.info("  Email already sent — skipping.")
+            logger.info("  ✓ Email already sent — skipping.")
 
         # ------------------------------------------------------------------
         # Step 4 — Log completion
         # ------------------------------------------------------------------
-        logger.info("  Database Updated.")
-        logger.info("  Completed: %s", reg_id)
+        logger.info("  ✓ Database Updated (registration_id=%s, qr_sent=True, email_sent=True).", reg_id)
+        logger.info("  ✓ Completed processing for participant ID %d (%s)", participant.id, reg_id)
 
     except Exception as e:
         db.rollback()

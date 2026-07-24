@@ -68,14 +68,19 @@ def _watch_loop() -> None:
 
             # Enqueue only participants not already in-flight
             enqueued = 0
-            for (pid,) in new_participants:
+            pids = [pid for (pid,) in new_participants]
+            if pids:
+                logger.info("👁️ Watcher poll: found %d pending participant(s) IDs=%s | Queue size: %d",
+                            len(pids), pids, queue_manager.size())
+
+            for pid in pids:
                 if not is_in_flight(pid):
                     mark_in_flight(pid)
                     queue_manager.enqueue(pid)
                     enqueued += 1
 
             if enqueued > 0:
-                logger.info("Enqueued %d participant(s). Queue size: %d", enqueued, queue_manager.size())
+                logger.info("Enqueued %d new participant(s) into queue. Queue size: %d", enqueued, queue_manager.size())
                 # Kick off the worker (non-blocking if already running)
                 process_queue()
 
