@@ -18,7 +18,7 @@ export const Route = createFileRoute("/")({
 
 function Home() {
   return (
-    <SiteShell>
+    <SiteShell transparentNav>
       {/* HERO */}
       <section className="relative overflow-hidden">
         <div
@@ -34,7 +34,7 @@ function Home() {
           className="absolute -right-40 -bottom-40 w-[560px] opacity-[0.06] pointer-events-none select-none"
         />
 
-        <div className="relative mx-auto max-w-6xl px-6 lg:px-10 pt-24 pb-28 md:pt-32 md:pb-36 text-center">
+        <div className="relative mx-auto max-w-6xl px-6 lg:px-10 pt-36 pb-24 md:pt-44 md:pb-32 text-center">
           <div className="animate-fade-up">
             <div className="inline-flex items-center gap-3 rounded-full border border-[color:var(--gold)]/50 bg-white/70 px-4 py-1.5 text-[11px] font-semibold tracking-[0.22em] uppercase text-[color:var(--maroon)]">
               <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--gold)]" />
