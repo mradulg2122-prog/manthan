@@ -27,8 +27,12 @@ dist/
 .output/
 .wrangler/
 
+# Generated runtime assets
+backend/generated/
+
 # OS / Editor
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
+

@@ -1,220 +1,154 @@
 # EventFlow Pro — Youth Parliament 6.0
 
-AI-powered event management platform with automatic registration processing, QR-based attendance, and a real-time admin dashboard.
+AI-powered event management platform featuring automated student registration, QR code generation, Gmail API OAuth 2.0 email delivery, Google Sheets live backup, mobile volunteer check-in scanner, and real-time admin dashboard.
 
-## Features
+---
 
-- ✅ Student Registration (POST /register)
-- ✅ Automatic QR Code Generation
-- ✅ Automatic Email with QR Attachment
-- ✅ Background Watcher (auto-processes new registrations)
-- ✅ Volunteer QR Scanner (mobile-friendly)
-- ✅ Live Attendance Tracking
-- ✅ Admin Dashboard with Search, Sort, Pagination
-- ✅ Manual Attendance Toggle
-- ✅ Excel Export
-- ✅ JWT Authentication (Admin + Volunteer roles)
-- ✅ Health Monitoring
-- ✅ System Status Dashboard
+## 🚀 Key Features
 
-## Tech Stack
+- **Student Registration**: Fast, validated registration (`POST /register`).
+- **Registration ID Generation**: Automated, collision-free ID assignment (`EVT20260001`).
+- **QR Code Generation**: Auto-generated PNG QR assets stored locally.
+- **Gmail API Email Delivery**: Reliable OAuth 2.0 confirmation email with QR attachment.
+- **Google Sheets Backup**: Automatic secondary backup of registrations and check-ins.
+- **Volunteer QR Scanner**: Mobile-friendly camera scanner (`/scan`) for instant check-in.
+- **Admin Dashboard**: Live metrics, participant list, search, filter, manual attendance toggle, Excel export.
+- **JWT Authentication**: Role-based access for Admin and Volunteer profiles.
+- **Analytics & Observability**: Google Analytics 4 and Microsoft Clarity integrated.
 
-| Layer    | Technology                        |
-|----------|-----------------------------------|
-| Backend  | FastAPI, SQLAlchemy, PostgreSQL    |
-| Auth     | JWT (PyJWT), bcrypt                |
-| Email    | SMTP (Gmail App Password)          |
-| QR       | qrcode + Pillow                    |
-| Frontend | Next.js 16, React, TailwindCSS     |
-| Scanner  | html5-qrcode                       |
-| Export   | openpyxl                           |
+---
 
-## Prerequisites
+## 🛠️ Tech Stack
 
-- Python 3.10+
-- Node.js 18+
-- PostgreSQL (local or cloud like Neon)
-- Gmail account with App Password (for email)
+| Layer | Technology |
+|---|---|
+| **Backend** | Python 3.12, FastAPI, SQLAlchemy, PostgreSQL / SQLite |
+| **Auth** | JWT (PyJWT), bcrypt |
+| **Email** | Gmail API (OAuth 2.0 via `google-api-python-client`) |
+| **QR Code** | `qrcode` + Pillow |
+| **Backup** | Google Sheets API v4 (`google-auth`, Service Account) |
+| **Frontend** | React 19, TanStack Start / Vite, TailwindCSS |
+| **Scanner** | `html5-qrcode` |
+| **Analytics** | Google Analytics 4 (`react-ga4`), Microsoft Clarity (`@microsoft/clarity`) |
+| **Deployment** | Render (Web Services + PostgreSQL Database) |
 
-## Installation
+---
 
-### 1. Clone
+## 📁 Repository Structure
 
-```bash
-git clone <your-repo-url>
-cd EventFlow_AI
+```
+EventFlow_AI/
+├── backend/                  # FastAPI Backend Service
+│   ├── app/
+│   │   ├── api/              # API Route Handlers (auth, dashboard, registration, scan)
+│   │   ├── background/       # Background Watcher & Queue Worker
+│   │   ├── database/         # SQLAlchemy DB session & table init
+│   │   ├── models/           # Participant & User ORM models
+│   │   ├── schemas/          # Pydantic request/response schemas
+│   │   ├── services/         # Auth, Email (Gmail API), QR, ID, Google Sheets
+│   │   ├── config.py         # Central configuration from .env
+│   │   └── main.py           # FastAPI entry point
+│   ├── scripts/              # Helper scripts (generate_gmail_token.py)
+│   ├── generated/            # Local QR assets and processing state
+│   └── requirements.txt      # Backend Python dependencies
+│
+├── youth-parliament-portal/  # React / TanStack Start Frontend App
+│   ├── src/
+│   │   ├── assets/           # Logos & background images
+│   │   ├── components/       # UI & Site components (Navbar, Footer, QRScanner, AuthCard)
+│   │   ├── lib/              # API client & error reporting helpers
+│   │   └── routes/           # Pages (Home, Register, Success, Scanner, Admin, Login)
+│   ├── public/               # Favicon & static assets
+│   └── package.json          # Frontend Node dependencies
+│
+├── render.yaml               # Render Blueprint Deployment Configuration
+└── README.md
 ```
 
-### 2. Backend Setup
+---
+
+## ⚡ Quick Start (Local Development)
+
+### 1. Backend Setup
 
 ```bash
 cd backend
 python -m venv venv
 
-# Windows
+# Windows:
 venv\Scripts\activate
-
-# macOS/Linux
+# macOS/Linux:
 source venv/bin/activate
 
 pip install -r requirements.txt
 ```
 
-### 3. Environment Variables
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` with your values:
-
+Create `backend/.env`:
 ```env
 APP_NAME=EventFlow Pro
 DEBUG=True
 HOST=0.0.0.0
 PORT=8000
-DATABASE_URL=postgresql://user:password@host/dbname
-SECRET_KEY=your-random-secret-key
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_EMAIL=your_email@gmail.com
-SMTP_PASSWORD=your_gmail_app_password
+DATABASE_URL=sqlite:///./eventflow.db
+SECRET_KEY=dev-secret-key
+
+# Gmail API OAuth 2.0
+GMAIL_CLIENT_ID=your_client_id
+GMAIL_CLIENT_SECRET=your_client_secret
+GMAIL_REFRESH_TOKEN=your_refresh_token
+GMAIL_SENDER_EMAIL=mradulg2122@gmail.com
+
+# Google Sheets Backup
+GOOGLE_SHEET_ID=your_spreadsheet_id
+GOOGLE_SERVICE_ACCOUNT_FILE=credentials.json
 ```
 
-### 4. Frontend Setup
-
+Start backend:
 ```bash
-cd frontend
-npm install
-```
-
-### 5. Run
-
-**Terminal 1 — Backend:**
-
-```bash
-cd backend
 uvicorn app.main:app --reload
 ```
 
-**Terminal 2 — Frontend:**
+---
+
+### 2. Frontend Setup
 
 ```bash
-cd frontend
+cd youth-parliament-portal
+npm install
+```
+
+Create `youth-parliament-portal/.env`:
+```env
+VITE_API_URL=http://localhost:8000
+VITE_GA_MEASUREMENT_ID=YOUR_MEASUREMENT_ID
+VITE_CLARITY_PROJECT_ID=YOUR_CLARITY_PROJECT_ID
+```
+
+Start frontend:
+```bash
 npm run dev
 ```
 
-## Default Admin
+Open: `http://localhost:8080`
 
-Created automatically on first startup:
+---
 
-| Field    | Value                |
-|----------|----------------------|
-| Email    | admin@eventflow.com  |
-| Password | admin123             |
-| Role     | ADMIN                |
+## 🔑 Default Accounts
 
-> ⚠️ Change the default password in production.
+Created automatically on backend startup:
 
-## API Endpoints
+| Role | Email | Password |
+|---|---|---|
+| **Admin** | `admin@eventflow.com` | `admin123` |
+| **Volunteer 1** | `volunteer1@eventflow.com` | `vol123` |
+| **Volunteer 2** | `volunteer2@eventflow.com` | `vol123` |
+| **Volunteer 3** | `volunteer3@eventflow.com` | `vol123` |
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET    | /        | —    | API status |
-| GET    | /health  | —    | System health check |
-| POST   | /register | —   | Register participant |
-| POST   | /scan    | —    | Scan QR for attendance |
-| POST   | /login   | —    | Authenticate user |
-| POST   | /logout  | —    | Logout |
-| GET    | /me      | JWT  | Current user info |
-| GET    | /dashboard/stats | ADMIN | Registration stats |
-| GET    | /dashboard/participants | ADMIN | Paginated list |
-| GET    | /dashboard/participant/{id} | ADMIN | Detail view |
-| PATCH  | /dashboard/participant/{id}/attendance | ADMIN | Toggle attendance |
-| GET    | /dashboard/activity | ADMIN | Recent check-ins |
-| GET    | /dashboard/export | ADMIN | Excel download |
+---
 
-## Frontend Routes
+## 🛰️ Production Deployment (Render)
 
-| Route   | Access    | Description |
-|---------|-----------|-------------|
-| /login  | Public    | Login page |
-| /scan   | Auth      | QR Scanner (volunteer/admin) |
-| /admin  | Admin     | Dashboard |
-
-## Complete Workflow
-
-```
-Student registers via POST /register
-        ↓
-Watcher detects (every 5s)
-        ↓
-Registration ID generated (EVT20260001)
-        ↓
-QR Code generated (generated/qr/)
-        ↓
-Email sent with QR attachment
-        ↓
-Database updated (qr_sent, email_sent)
-        ↓
-Volunteer opens /scan on phone
-        ↓
-Scans QR → attendance marked
-        ↓
-Admin sees live updates on /admin
-        ↓
-Admin exports → Youth_Parliament_6.0_Attendance_<DATE>.xlsx
-```
-
-## Project Structure
-
-```
-EventFlow_AI/
-├── backend/
-│   ├── app/
-│   │   ├── api/           # FastAPI routers
-│   │   ├── background/    # Watcher, queue, worker
-│   │   ├── database/      # SQLAlchemy setup
-│   │   ├── models/        # DB models
-│   │   ├── schemas/       # Pydantic schemas
-│   │   ├── services/      # Business logic
-│   │   ├── config.py      # Settings
-│   │   └── main.py        # Entry point
-│   ├── generated/         # QR images + state
-│   ├── requirements.txt
-│   └── .env.example
-├── frontend/
-│   ├── app/
-│   │   ├── admin/         # Dashboard
-│   │   ├── login/         # Login page
-│   │   ├── scan/          # QR Scanner
-│   │   ├── components/    # Reusable UI
-│   │   └── services/      # API layer
-│   └── package.json
-└── README.md
-```
-
-## Deployment
-
-### Backend (Railway / Render)
-
-1. Set environment variables
-2. Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-3. Set `DEBUG=False` in production
-
-### Frontend (Vercel)
-
-1. Set `NEXT_PUBLIC_API_URL` to your backend URL
-2. Deploy from the `frontend/` directory
-
-### Security Checklist
-
-- [ ] Change default admin password
-- [ ] Set a strong `SECRET_KEY`
-- [ ] Set `DEBUG=False`
-- [ ] Use HTTPS
-- [ ] Restrict CORS origins
-
-## License
-
-MIT
+This repository includes a `render.yaml` Blueprint for 1-click deployment on Render:
+1. Connect your repository to Render.
+2. Select **New Blueprint Instance**.
+3. Supply required environment variables (`GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN`, `GOOGLE_SERVICE_ACCOUNT_JSON`, `GOOGLE_SHEET_ID`, `VITE_GA_MEASUREMENT_ID`, `VITE_CLARITY_PROJECT_ID`).
