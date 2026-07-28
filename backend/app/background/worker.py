@@ -14,6 +14,7 @@ from app.models.participant import Participant
 from app.services.registration_id_service import generate_registration_id
 from app.services.qr_service import generate_and_save_qr
 from app.services.email_service import send_qr_email
+from app.services.google_sheets_service import append_participant as sheets_append
 from app.background import queue_manager
 
 logger = logging.getLogger("eventflow.worker")
@@ -105,7 +106,16 @@ def _process_one(participant_id: int) -> None:
             logger.info("  ✓ Email already sent — skipping.")
 
         # ------------------------------------------------------------------
-        # Step 4 — Log completion
+        # Step 4 — Google Sheets backup (fire-and-forget)
+        # ------------------------------------------------------------------
+        try:
+            db.refresh(participant)  # Ensure latest state
+            sheets_append(participant)
+        except Exception as e:
+            logger.warning("  Google Sheets backup skipped: %s", e)
+
+        # ------------------------------------------------------------------
+        # Step 5 — Log completion
         # ------------------------------------------------------------------
         logger.info("  ✓ Database Updated (registration_id=%s, qr_sent=True, email_sent=True).", reg_id)
         logger.info("  ✓ Completed processing for participant ID %d (%s)", participant.id, reg_id)

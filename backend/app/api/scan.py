@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.database.database import get_db
 from app.models.participant import Participant
 from app.schemas.scan import ScanRequest
+from app.services.google_sheets_service import update_attendance as sheets_update_attendance
 
 router = APIRouter(tags=["Scanner"])
 
@@ -45,6 +46,12 @@ def scan_qr(data: ScanRequest, db: Session = Depends(get_db)):
     participant.attendance_status = "Present"
     participant.check_in_time = now
     db.commit()
+
+    # Google Sheets backup (fire-and-forget)
+    try:
+        sheets_update_attendance(data.registration_id, "Present", now)
+    except Exception:
+        pass  # Never block scan response
 
     return {
         "success": True,
