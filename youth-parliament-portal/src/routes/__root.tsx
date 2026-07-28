@@ -8,6 +8,8 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
+import ReactGA from "react-ga4";
+import Clarity from "@microsoft/clarity";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -97,6 +99,28 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const router = useRouter();
+
+  useEffect(() => {
+    const gaId = import.meta.env.VITE_GA_MEASUREMENT_ID;
+    if (gaId && gaId !== "YOUR_MEASUREMENT_ID") {
+      ReactGA.initialize(gaId);
+      ReactGA.send({ hitType: "pageview", page: window.location.pathname });
+
+      const unsubscribe = router.subscribe("onResolved", (event) => {
+        ReactGA.send({ hitType: "pageview", page: event.toLocation.pathname });
+      });
+      return unsubscribe;
+    }
+  }, [router]);
+
+  useEffect(() => {
+    const clarityId = import.meta.env.VITE_CLARITY_PROJECT_ID;
+    if (clarityId && clarityId !== "YOUR_CLARITY_PROJECT_ID") {
+      Clarity.init(clarityId);
+    }
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />
