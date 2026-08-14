@@ -20,11 +20,11 @@ class Settings:
     DATABASE_URL: str = os.getenv("DATABASE_URL") or "sqlite:///./eventflow.db"
     SECRET_KEY: str = os.getenv("SECRET_KEY", "change-me-in-production")
 
-    # Gmail API (OAuth 2.0 — works on Render via HTTPS, no SMTP ports needed)
-    GMAIL_CLIENT_ID: str = os.getenv("GMAIL_CLIENT_ID", "")
-    GMAIL_CLIENT_SECRET: str = os.getenv("GMAIL_CLIENT_SECRET", "")
-    GMAIL_REFRESH_TOKEN: str = os.getenv("GMAIL_REFRESH_TOKEN", "")
-    GMAIL_SENDER_EMAIL: str = os.getenv("GMAIL_SENDER_EMAIL", "mradulg2122@gmail.com")
+    # SMTP email settings
+    SMTP_HOST: str = os.getenv("SMTP_HOST", "")
+    SMTP_PORT: str = os.getenv("SMTP_PORT", "587")
+    SMTP_EMAIL: str = os.getenv("SMTP_EMAIL", "")
+    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")
 
 
 # Single instance used across the app
