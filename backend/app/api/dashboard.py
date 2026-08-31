@@ -221,9 +221,24 @@ def export_attendance(
     wb.save(buffer)
     buffer.seek(0)
 
-    filename = f"Youth_Parliament_6.0_Attendance_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
+    filename = f"MANTHAN_Attendance_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
     return StreamingResponse(
         buffer,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
+
+
+# ─── Reset / Clear all participants ───────────────────────────────────────────
+@router.post("/reset")
+def reset_all_participants(db: Session = Depends(get_db), _=Depends(require_admin)):
+    """Wipe all participant records for a clean fresh event start (Admin only)."""
+    count = db.query(Participant).delete()
+    db.commit()
+    logger.info("🗑️ Admin reset participants: deleted %d records.", count)
+    return {
+        "success": True,
+        "message": f"Successfully wiped {count} participant record(s). Database is ready for fresh start.",
+        "deleted_count": count,
+    }
+

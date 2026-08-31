@@ -230,9 +230,9 @@ export function getExportUrl(): string {
 // ---------------------------------------------------------------------------
 export interface HealthResult {
   status: string;
-  database: string;
+  database: any;
   watcher: string;
-  email: string;
+  email_smtp: any;
 }
 
 export async function getHealth(): Promise<HealthResult | null> {
@@ -242,3 +242,13 @@ export async function getHealth(): Promise<HealthResult | null> {
     return null;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Reset Participants — POST /dashboard/reset (Admin Only)
+// ---------------------------------------------------------------------------
+export async function resetParticipants(): Promise<{ success: boolean; message: string; deleted_count: number }> {
+  return apiFetch<{ success: boolean; message: string; deleted_count: number }>("/dashboard/reset", {
+    method: "POST",
+  });
+}
+

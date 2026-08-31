@@ -12,6 +12,7 @@ import {
   Sparkles,
   ShieldCheck,
   RefreshCw,
+  Trash2,
 } from "lucide-react";
 import {
   getStats,
@@ -20,6 +21,7 @@ import {
   getExportUrl,
   getMe,
   clearToken,
+  resetParticipants,
   type DashboardStats,
   type ParticipantRow,
   type ActivityItem,
@@ -122,6 +124,26 @@ function AdminDashboard() {
     window.open(getExportUrl(), "_blank");
   };
 
+  const [resetting, setResetting] = useState(false);
+
+  const handleResetDatabase = async () => {
+    const confirm = window.confirm(
+      "⚠️ DANGER: Are you sure you want to delete all participant registrations for a clean fresh start?\n\nThis action cannot be undone."
+    );
+    if (!confirm) return;
+
+    setResetting(true);
+    try {
+      const res = await resetParticipants();
+      alert(res.message || "Database reset successfully.");
+      await Promise.all([fetchStats(), fetchParticipants(), fetchActivity()]);
+    } catch (err: any) {
+      alert("Failed to reset: " + (err.message || "Unknown error"));
+    } finally {
+      setResetting(false);
+    }
+  };
+
   const handleLogout = () => {
     clearToken();
     navigate({ to: "/admin-login" });
@@ -200,8 +222,17 @@ function AdminDashboard() {
                 <Download className="h-4 w-4 text-[#C49A45]" /> Export Attendance CSV
               </button>
               <button
+                onClick={handleResetDatabase}
+                disabled={resetting}
+                className="btn-outline !py-2.5 !px-3 text-xs font-bold text-[#9E2A2B] hover:bg-[#9E2A2B]/10 hover:border-[#9E2A2B]"
+                title="Clear test participants for fresh start"
+              >
+                <Trash2 className="h-4 w-4 text-[#9E2A2B]" />
+                <span className="hidden sm:inline">Reset Data</span>
+              </button>
+              <button
                 onClick={handleLogout}
-                className="btn-outline !py-2.5 !px-3.5 text-xs font-bold text-[#9E2A2B] hover:border-[#9E2A2B]"
+                className="btn-outline !py-2.5 !px-3.5 text-xs font-bold text-[#102A43]/70 hover:text-[#9E2A2B]"
                 title="Sign out"
               >
                 <LogOut className="h-4 w-4" />
