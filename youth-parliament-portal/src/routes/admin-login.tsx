@@ -58,7 +58,7 @@ function AdminLogin() {
           <input
             type="email"
             className={authInput + " mt-1.5"}
-            placeholder="admin@eventflow.com"
+            placeholder="admin@example.com"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}

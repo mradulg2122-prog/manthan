@@ -11,9 +11,9 @@ export function Footer() {
           {/* Col 1: Brand */}
           <div className="md:col-span-5 space-y-4">
             <div className="flex items-center gap-4">
-              <img src={glaLogo} alt="GLA University" className="h-12 w-auto object-contain" loading="lazy" />
-              <div className="h-7 w-px bg-[#DDD7C9]" />
-              <img src={saturangleLogo} alt="Saturangle — The Debate Club" className="h-10 w-auto object-contain" loading="lazy" />
+              <img src={glaLogo} alt="GLA University" className="h-16 sm:h-20 w-auto object-contain" loading="lazy" />
+              <div className="h-10 w-px bg-[#DDD7C9]" />
+              <img src={saturangleLogo} alt="Saturangle — The Debate Club" className="h-14 sm:h-16 w-auto object-contain" loading="lazy" />
             </div>
             <div className="pt-2">
               <div className="text-xs font-bold tracking-[0.2em] uppercase text-[#C49A45]">

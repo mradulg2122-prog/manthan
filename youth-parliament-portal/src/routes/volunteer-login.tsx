@@ -58,7 +58,7 @@ function VolunteerLogin() {
           <input
             type="email"
             className={authInput + " mt-1.5"}
-            placeholder="volunteer1@eventflow.com"
+            placeholder="name@example.com"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
