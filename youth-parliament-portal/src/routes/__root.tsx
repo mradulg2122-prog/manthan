@@ -19,10 +19,10 @@ function NotFoundComponent() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <p className="eyebrow justify-center">Error 404</p>
-        <h1 className="mt-4 text-5xl font-serif text-foreground">Page not found</h1>
+        <h1 className="mt-4 text-4xl md:text-5xl font-serif text-foreground">Page not found</h1>
         <div className="gold-divider my-6 w-24 mx-auto" />
         <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+          The page you are looking for does not exist or has been moved.
         </p>
         <div className="mt-8">
           <Link to="/" className="btn-primary">Return to Home</Link>
@@ -61,11 +61,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Youth Parliament 6.0 — Official Registration Portal | Saturangle × GLA University" },
-      { name: "description", content: "Official registration for Youth Parliament 6.0, hosted by Saturangle, the official debate club of GLA University. Where voices become leaders." },
-      { name: "author", content: "Saturangle Debate Club — GLA University" },
-      { property: "og:title", content: "Youth Parliament 6.0 — Official Registration Portal" },
-      { property: "og:description", content: "Join the flagship parliamentary debate experience hosted by Saturangle at GLA University." },
+      { title: "MANTHAN | The Freshers' Showdown — PRARAMBH 2K26 | Saturangle × GLA University" },
+      { name: "description", content: "Official registration for MANTHAN: The Freshers' Showdown at PRARAMBH 2K26. Hosted by Saturangle – The Debate Club, GLA University. Speak. Stand out. Conquer." },
+      { name: "author", content: "Saturangle – The Debate Club, GLA University" },
+      { property: "og:title", content: "MANTHAN | The Freshers' Showdown — PRARAMBH 2K26" },
+      { property: "og:description", content: "A debate and public-speaking competition for freshers. Your Voice. Your Ideas. Your Moment." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -74,7 +74,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "icon", type: "image/png", href: "/favicon.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" },
+      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" },
     ],
   }),
   shellComponent: RootShell,

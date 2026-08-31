@@ -1,14 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { AuthCard, authInput } from "@/components/site/AuthCard";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Lock, Mail, QrCode } from "lucide-react";
 import { login, saveToken } from "@/lib/api";
 
 export const Route = createFileRoute("/volunteer-login")({
   head: () => ({
     meta: [
-      { title: "Volunteer Login — Youth Parliament 6.0" },
-      { name: "description", content: "Secure volunteer access portal for Youth Parliament 6.0 event staff." },
+      { title: "Volunteer Login — MANTHAN | PRARAMBH 2K26" },
+      { name: "description", content: "Secure volunteer access portal for MANTHAN event check-in staff." },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -39,18 +39,25 @@ function VolunteerLogin() {
       saveToken(result.token);
       navigate({ to: "/scanner" });
     } else {
-      setError(result.message || "Login failed.");
+      setError(result.message || "Invalid credentials. Please check your volunteer account.");
     }
   };
 
   return (
-    <AuthCard eyebrow="Staff Portal" title="Volunteer Login" subtitle="Access the scanner and delegate check-in tools.">
+    <AuthCard
+      eyebrow="Event Staff Desk"
+      title="Volunteer Login"
+      subtitle="Access camera QR scanner and mark participant check-ins in real time."
+    >
       <form onSubmit={onSubmit} className="grid gap-5">
         <label className="block">
-          <span className="text-[11px] font-semibold tracking-[0.18em] uppercase text-muted-foreground">Volunteer Email</span>
+          <span className="flex items-center gap-1.5 text-[11px] font-bold tracking-[0.16em] uppercase text-[#102A43]">
+            <Mail className="h-3.5 w-3.5 text-[#C49A45]" />
+            Volunteer Email
+          </span>
           <input
             type="email"
-            className={authInput + " mt-2"}
+            className={authInput + " mt-1.5"}
             placeholder="volunteer1@eventflow.com"
             required
             value={email}
@@ -58,10 +65,13 @@ function VolunteerLogin() {
           />
         </label>
         <label className="block">
-          <span className="text-[11px] font-semibold tracking-[0.18em] uppercase text-muted-foreground">Password</span>
+          <span className="flex items-center gap-1.5 text-[11px] font-bold tracking-[0.16em] uppercase text-[#102A43]">
+            <Lock className="h-3.5 w-3.5 text-[#C49A45]" />
+            Password
+          </span>
           <input
             type="password"
-            className={authInput + " mt-2"}
+            className={authInput + " mt-1.5"}
             placeholder="••••••••"
             required
             value={password}
@@ -69,12 +79,24 @@ function VolunteerLogin() {
           />
         </label>
         {error && (
-          <div role="alert" className="rounded-md border border-[color:var(--crimson)]/30 bg-[color:var(--crimson)]/5 px-4 py-3 text-sm text-[color:var(--crimson)]">
+          <div
+            role="alert"
+            className="rounded-lg border border-[#9E2A2B]/30 bg-[#9E2A2B]/5 p-3.5 text-xs sm:text-sm text-[#9E2A2B] font-medium"
+          >
             {error}
           </div>
         )}
-        <button type="submit" disabled={loading} className="btn-primary w-full mt-2">
-          {loading ? "Signing in..." : (<>Sign In <ArrowRight className="h-4 w-4" /></>)}
+        <button
+          type="submit"
+          disabled={loading}
+          className="btn-primary w-full mt-2 !py-3 !font-bold"
+        >
+          {loading ? "Signing in..." : (
+            <>
+              <QrCode className="h-4 w-4 text-[#C49A45]" />
+              Open QR Scanner <ArrowRight className="h-4 w-4" />
+            </>
+          )}
         </button>
       </form>
     </AuthCard>
