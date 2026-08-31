@@ -187,14 +187,14 @@ function RegisterPage() {
                 </Field>
               </div>
 
-              {/* Official Email */}
-              <Field label="Official / University Email ID" icon={Mail} required>
+              {/* Personal Email */}
+              <Field label="Your Personal Email ID" icon={Mail} required>
                 <input
                   name="email"
                   type="email"
                   required
                   className={inputCls}
-                  placeholder="e.g. aarav.sharma_cs24@gla.ac.in"
+                  placeholder="e.g. aarav.sharma@gmail.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
