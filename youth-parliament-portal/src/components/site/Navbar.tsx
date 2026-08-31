@@ -16,23 +16,19 @@ export function Navbar({ transparent = false }: NavbarProps) {
       }
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
-        <div
-          className={`flex items-center justify-between gap-4 ${
-            transparent ? "h-28 sm:h-32" : "h-24 sm:h-28"
-          }`}
-        >
+        <div className="flex items-center justify-between gap-4 h-20 sm:h-24">
           {/* Brand logos */}
-          <div className="flex items-center gap-4 sm:gap-6 shrink-0 py-2">
+          <div className="flex items-center gap-3 sm:gap-5 shrink-0 py-1">
             {/* GLA University Logo */}
             <Link to="/" className="flex items-center" aria-label="GLA University">
               <img
                 src={glaLogo}
                 alt="GLA University"
-                className="h-16 sm:h-20 md:h-24 w-auto object-contain transition-transform hover:scale-105 drop-shadow-xs"
+                className="h-12 sm:h-14 md:h-16 w-auto object-contain transition-transform hover:scale-105"
               />
             </Link>
 
-            <div className="h-10 sm:h-12 w-px bg-[#DDD7C9]" />
+            <div className="h-8 sm:h-10 w-px bg-[#DDD7C9]" />
 
             {/* Saturangle Logo */}
             <Link
@@ -43,7 +39,7 @@ export function Navbar({ transparent = false }: NavbarProps) {
               <img
                 src={saturangleLogo}
                 alt="Saturangle — The Debate Club"
-                className="h-14 sm:h-16 md:h-20 w-auto object-contain transition-transform hover:scale-105 drop-shadow-xs"
+                className="h-11 sm:h-13 md:h-15 w-auto object-contain transition-transform hover:scale-105"
               />
             </Link>
           </div>
