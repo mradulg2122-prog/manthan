@@ -184,10 +184,11 @@ async def health_check():
     # Watcher
     watcher_ok = watcher_is_running()
 
-    # Email (SMTP) config check
+    # Email config checks
+    brevo_key = (os.getenv("BREVO_API_KEY") or os.getenv("BREVO_KEY") or "").strip()
+    resend_key = (os.getenv("RESEND_API_KEY") or os.getenv("RESEND_KEY") or "").strip()
     smtp_email = os.getenv("SMTP_EMAIL") or settings.SMTP_EMAIL or ""
     smtp_pwd = os.getenv("SMTP_PASSWORD") or settings.SMTP_PASSWORD or ""
-    smtp_configured = bool(smtp_email and smtp_pwd.strip())
 
     return {
         "status": "healthy" if (db_ok and watcher_ok) else "degraded",
@@ -198,12 +199,21 @@ async def health_check():
             "max_limit": 100,
         },
         "watcher": "running" if watcher_ok else "stopped",
-        "email_smtp": {
-            "configured": smtp_configured,
-            "sender": smtp_email if smtp_email else "NOT_SET",
-            "password_present": bool(smtp_pwd.strip()),
+        "email_engines": {
+            "brevo_https_port443": {
+                "configured": bool(brevo_key),
+                "key_preview": (brevo_key[:8] + "...") if brevo_key else "NOT_FOUND",
+            },
+            "resend_https_port443": {
+                "configured": bool(resend_key),
+            },
+            "gmail_smtp_fallback": {
+                "configured": bool(smtp_email and smtp_pwd.strip()),
+                "sender": smtp_email or "NOT_SET",
+            },
         },
     }
+
 
 
 # ---------------------------------------------------------------------------

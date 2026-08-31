@@ -221,24 +221,42 @@ Saturangle Debate Club & EventFlow Pro
 </html>"""
 
     # Strategy 1: Brevo HTTPS REST API (Port 443 - Instant 150ms)
-    brevo_key = os.getenv("BREVO_API_KEY", "").strip()
+    brevo_key = (
+        os.getenv("BREVO_API_KEY")
+        or os.getenv("BREVO_KEY")
+        or os.getenv("SENDINBLUE_API_KEY")
+        or os.getenv("BREVO_TOKEN")
+        or ""
+    ).strip()
+
     if brevo_key:
         try:
+            logger.info("🔑 [EmailEngine] Found Brevo API key (%s...) — dispatching via HTTPS Port 443...", brevo_key[:8])
             _send_via_brevo_api(brevo_key, recipient_email, recipient_name, subject, html_body, qr_image_path)
             return
         except Exception as e:
-            logger.warning("Brevo API failed: %s. Falling back...", e)
+            logger.error("❌ Brevo API failed: %s. Falling back to SMTP...", e)
+    else:
+        logger.warning("⚠️ [EmailEngine] BREVO_API_KEY not found in environment. Falling back to SMTP.")
 
     # Strategy 2: Resend HTTPS REST API (Port 443 - Instant 150ms)
-    resend_key = os.getenv("RESEND_API_KEY", "").strip()
+    resend_key = (
+        os.getenv("RESEND_API_KEY")
+        or os.getenv("RESEND_KEY")
+        or os.getenv("RESEND_TOKEN")
+        or ""
+    ).strip()
+
     if resend_key:
         try:
+            logger.info("🔑 [EmailEngine] Found Resend API key — dispatching via HTTPS Port 443...")
             _send_via_resend_api(resend_key, recipient_email, recipient_name, subject, html_body, qr_image_path)
             return
         except Exception as e:
-            logger.warning("Resend API failed: %s. Falling back...", e)
+            logger.error("❌ Resend API failed: %s. Falling back to SMTP...", e)
 
     # Strategy 3: Direct Gmail SMTP
+    logger.info("⚡ [EmailEngine] Attempting direct Gmail SMTP for %s ...", recipient_email)
     msg = MIMEMultipart("mixed")
     msg["From"] = f"MANTHAN — Saturangle Debate Club <{sender_email}>"
     msg["To"] = recipient_email
@@ -255,3 +273,4 @@ Saturangle Debate Club & EventFlow Pro
         msg.attach(qr_img)
 
     _send_via_smtp(msg)
+
