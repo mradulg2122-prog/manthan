@@ -25,6 +25,11 @@ def is_phone_duplicate_for_event(db: Session, phone: str, event: str) -> bool:
     )
 
 
+def get_registration_count(db: Session, event: str = "MANTHAN | The Freshers' Showdown") -> int:
+    """Return current count of registered participants."""
+    return db.query(Participant).count()
+
+
 def create_participant(db: Session, data: ParticipantCreate) -> Participant:
     """Insert a new participant row and return it."""
     participant = Participant(

@@ -14,11 +14,14 @@ from app.schemas.participant import ParticipantCreate, ParticipantResponse
 from app.services.participant_service import (
     is_email_taken,
     is_phone_duplicate_for_event,
+    get_registration_count,
     create_participant,
 )
 from app.background.worker import _process_one
 
 logger = logging.getLogger("eventflow.registration")
+
+MAX_REGISTRATIONS = 100
 
 router = APIRouter(tags=["Registration"])
 
@@ -29,6 +32,17 @@ def register_participant(
     db: Session = Depends(get_db),
 ):
     """Register a new participant for an event."""
+
+    # --- Max 100 registrations cap ---
+    current_count = get_registration_count(db)
+    if current_count >= MAX_REGISTRATIONS:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "success": False,
+                "message": f"Registrations for MANTHAN have reached the maximum limit of {MAX_REGISTRATIONS} participants. Registrations are now closed.",
+            },
+        )
 
     # --- Duplicate email check ---
     if is_email_taken(db, data.email):
