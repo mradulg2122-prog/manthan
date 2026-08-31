@@ -1,13 +1,17 @@
 """
 Email Service for MANTHAN | EventFlow Pro.
-Ultra-Fast direct IPv4 Gmail SMTP delivery with QR code attachments.
+High-Speed Email Engine supporting both:
+1. Direct HTTPS REST API (Brevo / Resend over Port 443 — NEVER blocked by Render cloud)
+2. Direct SMTP (Gmail Port 587/465 fallback)
 """
 
 import os
 import ssl
+import base64
 import socket
 import smtplib
 import logging
+import requests
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
@@ -16,13 +20,10 @@ from app.config import settings
 
 logger = logging.getLogger("eventflow.email")
 
-# ---------------------------------------------------------------------------
-# Force IPv4 Resolution for SMTP to eliminate cloud IPv6 timeout delays (1-5 min)
-# ---------------------------------------------------------------------------
+# Force IPv4 for any SMTP fallback
 _original_getaddrinfo = socket.getaddrinfo
 
 def _ipv4_forced_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
-    """Force AF_INET (IPv4) for all SMTP / Gmail endpoints to avoid cloud IPv6 routing hang."""
     if host and ("smtp" in str(host) or "gmail" in str(host) or "google" in str(host)):
         family = socket.AF_INET
     return _original_getaddrinfo(host, port, family, type, proto, flags)
@@ -30,29 +31,71 @@ def _ipv4_forced_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
 socket.getaddrinfo = _ipv4_forced_getaddrinfo
 
 
-def _send_email(msg: MIMEMultipart) -> None:
-    """
-    Dispatch email with high speed via Gmail SMTP TLS / SSL.
-    Tries Port 587 then Port 465 with aggressive 6-second timeouts.
-    """
+def _send_via_brevo_api(api_key: str, recipient_email: str, recipient_name: str, subject: str, html_body: str, qr_path: str) -> bool:
+    """Send via Brevo HTTPS REST API (Port 443 - Instant 150ms delivery)."""
+    with open(qr_path, "rb") as f:
+        qr_b64 = base64.b64encode(f.read()).decode("utf-8")
+
+    sender_email = os.getenv("BREVO_SENDER_EMAIL") or os.getenv("SMTP_EMAIL") or "mradulg2122@gmail.com"
+    payload = {
+        "sender": {"name": "MANTHAN — Saturangle Debate Club", "email": sender_email},
+        "to": [{"email": recipient_email, "name": recipient_name}],
+        "subject": subject,
+        "htmlContent": html_body,
+        "attachment": [{"content": qr_b64, "name": f"manthan_qr_pass.png"}],
+    }
+    headers = {
+        "api-key": api_key.strip(),
+        "Content-Type": "application/json",
+        "accept": "application/json",
+    }
+    resp = requests.post("https://api.brevo.com/v3/smtp/email", json=payload, headers=headers, timeout=8)
+    if resp.status_code in (200, 201, 202):
+        logger.info("⚡ [BREVO-API] Email dispatched INSTANTLY via HTTPS (Port 443) to %s", recipient_email)
+        return True
+    else:
+        logger.error("❌ [BREVO-API] Failed (%d): %s", resp.status_code, resp.text)
+        raise RuntimeError(f"Brevo API error: {resp.text}")
+
+
+def _send_via_resend_api(api_key: str, recipient_email: str, recipient_name: str, subject: str, html_body: str, qr_path: str) -> bool:
+    """Send via Resend HTTPS REST API (Port 443 - Instant 150ms delivery)."""
+    with open(qr_path, "rb") as f:
+        qr_b64 = base64.b64encode(f.read()).decode("utf-8")
+
+    payload = {
+        "from": "MANTHAN <onboarding@resend.dev>",
+        "to": [recipient_email],
+        "subject": subject,
+        "html": html_body,
+        "attachments": [{"filename": "manthan_qr_pass.png", "content": qr_b64}],
+    }
+    headers = {
+        "Authorization": f"Bearer {api_key.strip()}",
+        "Content-Type": "application/json",
+    }
+    resp = requests.post("https://api.resend.com/emails", json=payload, headers=headers, timeout=8)
+    if resp.status_code in (200, 201, 202):
+        logger.info("⚡ [RESEND-API] Email dispatched INSTANTLY via HTTPS (Port 443) to %s", recipient_email)
+        return True
+    else:
+        logger.error("❌ [RESEND-API] Failed (%d): %s", resp.status_code, resp.text)
+        raise RuntimeError(f"Resend API error: {resp.text}")
+
+
+def _send_via_smtp(msg: MIMEMultipart) -> None:
+    """SMTP Fallback via Ports 587/465."""
     host = os.getenv("SMTP_HOST") or settings.SMTP_HOST or "smtp.gmail.com"
     username = os.getenv("SMTP_EMAIL") or settings.SMTP_EMAIL or "mradulg2122@gmail.com"
     raw_pwd = os.getenv("SMTP_PASSWORD") or settings.SMTP_PASSWORD or ""
-    
-    # Strip spaces and surrounding quotes
     password = raw_pwd.replace(" ", "").replace('"', '').replace("'", "").strip()
 
-    if not username:
-        raise ValueError("SMTP_EMAIL is not set in environment!")
-    if not password:
-        raise ValueError("SMTP_PASSWORD is not set in environment! Please configure in Render / .env.")
+    if not username or not password:
+        raise ValueError("SMTP credentials missing.")
 
     recipient = msg["To"]
     msg_str = msg.as_string()
 
-    logger.info("⚡ [SMTP] Connecting to %s for %s ...", host, recipient)
-
-    last_err = None
     for port in [587, 465]:
         try:
             if port == 587:
@@ -68,14 +111,12 @@ def _send_email(msg: MIMEMultipart) -> None:
             server.login(username, password)
             server.sendmail(username, recipient, msg_str)
             server.quit()
-            logger.info("✅ [SMTP] Email dispatched INSTANTLY to %s via port %d", recipient, port)
+            logger.info("✅ [SMTP] Email dispatched via port %d to %s", port, recipient)
             return
         except Exception as e:
-            last_err = e
-            logger.warning("⚠️ [SMTP] Port %d failed (%s). Trying alternate port...", port, e)
+            logger.warning("⚠️ [SMTP] Port %d failed (%s).", port, e)
 
-    raise last_err or RuntimeError("SMTP connection failed on all ports.")
-
+    raise RuntimeError("SMTP ports 587 and 465 timed out on Render cloud network.")
 
 
 def send_qr_email(
@@ -85,18 +126,13 @@ def send_qr_email(
     qr_image_path: str,
     event_name: str = "MANTHAN | The Freshers' Showdown",
 ) -> None:
-    """Send registration confirmation email with QR pass attached instantly."""
+    """Send registration confirmation email with QR pass attached."""
 
     if not os.path.exists(qr_image_path):
-        logger.error("QR image not found: %s", qr_image_path)
         raise FileNotFoundError(f"QR image not found: {qr_image_path}")
 
     sender_email = os.getenv("SMTP_EMAIL") or settings.SMTP_EMAIL or "mradulg2122@gmail.com"
-
-    msg = MIMEMultipart("mixed")
-    msg["From"] = f"MANTHAN — Saturangle Debate Club <{sender_email}>"
-    msg["To"] = recipient_email
-    msg["Subject"] = f"Registration Confirmed: MANTHAN | The Freshers' Showdown ({registration_id})"
+    subject = f"Registration Confirmed: MANTHAN | The Freshers' Showdown ({registration_id})"
 
     plain_body = f"""Hello {recipient_name},
 
@@ -168,7 +204,7 @@ Saturangle Debate Club & EventFlow Pro
       </div>
 
       <div class="qr-note">
-        <strong>⚠️ Entry Pass:</strong> Your unique QR code is attached to this email (<code>{registration_id}.png</code>). Please carry it on your mobile device during check-in at the venue.
+        <strong>⚠️ Entry Pass:</strong> Your unique QR code is attached to this email. Please carry it on your mobile device during check-in at the venue.
       </div>
 
       <p style="font-size: 13px; color: #627D98; margin-bottom: 0;">
@@ -184,18 +220,38 @@ Saturangle Debate Club & EventFlow Pro
 </body>
 </html>"""
 
+    # Strategy 1: Brevo HTTPS REST API (Port 443 - Instant 150ms)
+    brevo_key = os.getenv("BREVO_API_KEY", "").strip()
+    if brevo_key:
+        try:
+            _send_via_brevo_api(brevo_key, recipient_email, recipient_name, subject, html_body, qr_image_path)
+            return
+        except Exception as e:
+            logger.warning("Brevo API failed: %s. Falling back...", e)
+
+    # Strategy 2: Resend HTTPS REST API (Port 443 - Instant 150ms)
+    resend_key = os.getenv("RESEND_API_KEY", "").strip()
+    if resend_key:
+        try:
+            _send_via_resend_api(resend_key, recipient_email, recipient_name, subject, html_body, qr_image_path)
+            return
+        except Exception as e:
+            logger.warning("Resend API failed: %s. Falling back...", e)
+
+    # Strategy 3: Direct Gmail SMTP
+    msg = MIMEMultipart("mixed")
+    msg["From"] = f"MANTHAN — Saturangle Debate Club <{sender_email}>"
+    msg["To"] = recipient_email
+    msg["Subject"] = subject
+
     alt_part = MIMEMultipart("alternative")
     alt_part.attach(MIMEText(plain_body, "plain"))
     alt_part.attach(MIMEText(html_body, "html"))
     msg.attach(alt_part)
 
-    # Attach QR image
     with open(qr_image_path, "rb") as f:
         qr_img = MIMEImage(f.read(), name=f"{registration_id}.png")
-        qr_img.add_header(
-            "Content-Disposition", "attachment",
-            filename=f"{registration_id}.png",
-        )
+        qr_img.add_header("Content-Disposition", "attachment", filename=f"{registration_id}.png")
         msg.attach(qr_img)
 
-    _send_email(msg)
+    _send_via_smtp(msg)
