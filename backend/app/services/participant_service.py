@@ -30,19 +30,27 @@ def get_registration_count(db: Session, event: str = "MANTHAN | The Freshers' Sh
     return db.query(Participant).count()
 
 
-def create_participant(db: Session, data: ParticipantCreate) -> Participant:
-    """Insert a new participant row and return it."""
+def create_participant(db: Session, data: ParticipantCreate) -> tuple[Participant, str, str]:
+    """Insert a new participant row with instant Registration ID and QR Code in 1 step."""
+    from app.services.registration_id_service import generate_registration_id
+    from app.services.qr_service import generate_and_save_qr
+
+    reg_id = generate_registration_id(db)
+    qr_path = generate_and_save_qr(reg_id)
+
     participant = Participant(
+        registration_id=reg_id,
         name=data.name,
         email=data.email,
         phone=data.phone,
         college=data.college,
         event=data.event,
         attendance_status="Absent",
-        qr_sent=False,
+        qr_sent=True,
         email_sent=False,
     )
     db.add(participant)
     db.commit()
     db.refresh(participant)
-    return participant
+    return participant, reg_id, qr_path
+

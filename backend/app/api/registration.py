@@ -58,20 +58,38 @@ def register_participant(
             detail={"success": False, "message": "Participant already registered."},
         )
 
-    # --- Save to database ---
-    participant = create_participant(db, data)
+    # --- Save to database with Instant ID & QR ---
+    participant, reg_id, qr_path = create_participant(db, data)
     pid = participant.id
-    logger.info("✓ Saved participant %d (%s) — triggering immediate pipeline.", pid, participant.name)
+    logger.info("✓ Saved participant %d (%s) with Registration ID %s", pid, participant.name, reg_id)
 
-    # --- Trigger pipeline immediately in a background thread ---
-    # _process_one uses its own SessionLocal, so it is safe to run
-    # after this request's db session has committed.
-    # The watcher still acts as a safety-net retry for any failures.
+    # --- Instant sub-second email dispatch ---
+    def _instant_email_dispatch():
+        try:
+            send_qr_email(
+                recipient_email=data.email,
+                recipient_name=data.name,
+                registration_id=reg_id,
+                qr_image_path=qr_path,
+                event_name=data.event,
+            )
+            # Update DB status
+            from app.database.database import SessionLocal
+            db_inner = SessionLocal()
+            try:
+                p = db_inner.query(Participant).filter(Participant.id == pid).first()
+                if p:
+                    p.email_sent = True
+                    db_inner.commit()
+            finally:
+                db_inner.close()
+        except Exception as e:
+            logger.error("Instant email failed for %s: %s (Watcher will retry automatically).", data.email, e)
+
     threading.Thread(
-        target=_process_one,
-        args=(pid,),
+        target=_instant_email_dispatch,
         daemon=True,
-        name=f"pipeline-{pid}",
+        name=f"fast-mail-{pid}",
     ).start()
 
     return ParticipantResponse(
@@ -79,4 +97,5 @@ def register_participant(
         message="Registration successful.",
         participant_id=pid,
     )
+
 
