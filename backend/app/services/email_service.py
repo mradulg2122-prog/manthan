@@ -32,13 +32,14 @@ socket.getaddrinfo = _ipv4_forced_getaddrinfo
 
 def _send_email(msg: MIMEMultipart) -> None:
     """
-    Dispatch email with high speed (< 2s) via Gmail SMTP TLS on Port 587.
+    Dispatch email with high speed via Gmail SMTP TLS / SSL.
+    Tries Port 587 then Port 465 with aggressive 6-second timeouts.
     """
     host = os.getenv("SMTP_HOST") or settings.SMTP_HOST or "smtp.gmail.com"
     username = os.getenv("SMTP_EMAIL") or settings.SMTP_EMAIL or "mradulg2122@gmail.com"
     raw_pwd = os.getenv("SMTP_PASSWORD") or settings.SMTP_PASSWORD or ""
     
-    # Strip spaces and surrounding quotes if user copied 'xxxx xxxx xxxx xxxx'
+    # Strip spaces and surrounding quotes
     password = raw_pwd.replace(" ", "").replace('"', '').replace("'", "").strip()
 
     if not username:
@@ -49,23 +50,32 @@ def _send_email(msg: MIMEMultipart) -> None:
     recipient = msg["To"]
     msg_str = msg.as_string()
 
-    logger.info("⚡ [SMTP-IPv4] Connecting to %s:587 for %s ...", host, recipient)
+    logger.info("⚡ [SMTP] Connecting to %s for %s ...", host, recipient)
 
-    try:
-        # Port 587 with STARTTLS and forced IPv4 connects in ~300ms
-        server = smtplib.SMTP(host, 587, timeout=8)
-        server.ehlo()
-        context = ssl.create_default_context()
-        server.starttls(context=context)
-        server.ehlo()
-        server.login(username, password)
-        server.sendmail(username, recipient, msg_str)
-        server.quit()
-        logger.info("✅ [SMTP-IPv4] Email dispatched INSTANTLY to %s", recipient)
-        return
-    except Exception as err:
-        logger.error("❌ [SMTP-IPv4] Delivery failed to %s: %s", recipient, err)
-        raise
+    last_err = None
+    for port in [587, 465]:
+        try:
+            if port == 587:
+                server = smtplib.SMTP(host, 587, timeout=6)
+                server.ehlo()
+                context = ssl.create_default_context()
+                server.starttls(context=context)
+                server.ehlo()
+            else:
+                context = ssl.create_default_context()
+                server = smtplib.SMTP_SSL(host, 465, context=context, timeout=6)
+
+            server.login(username, password)
+            server.sendmail(username, recipient, msg_str)
+            server.quit()
+            logger.info("✅ [SMTP] Email dispatched INSTANTLY to %s via port %d", recipient, port)
+            return
+        except Exception as e:
+            last_err = e
+            logger.warning("⚠️ [SMTP] Port %d failed (%s). Trying alternate port...", port, e)
+
+    raise last_err or RuntimeError("SMTP connection failed on all ports.")
+
 
 
 def send_qr_email(
