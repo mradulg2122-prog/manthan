@@ -20,7 +20,7 @@ logger = logging.getLogger("eventflow.watcher")
 # ---------------------------------------------------------------------------
 _stop_event = threading.Event()
 
-POLL_INTERVAL = 5  # seconds
+POLL_INTERVAL = 3  # seconds
 
 # Track participant IDs currently being processed to prevent duplicates
 _in_flight: set = set()
