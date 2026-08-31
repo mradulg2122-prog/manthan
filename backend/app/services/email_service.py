@@ -1,6 +1,7 @@
 """
 Email Service for MANTHAN | EventFlow Pro.
-Ultra-fast email delivery with QR code attachments via SMTP.
+Ultra-resilient email delivery with automatic Dual-Port fallback (SSL 465 -> TLS 587)
+and QR code attachments via Gmail SMTP.
 """
 
 import os
@@ -10,54 +11,71 @@ import logging
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
-from email.mime.base import MIMEBase
-from email import encoders
 
 from app.config import settings
 
 logger = logging.getLogger("eventflow.email")
 
 
+def _send_via_ssl_465(host: str, username: str, password: str, recipient: str, msg_str: str) -> None:
+    """Attempt instant SSL delivery on port 465."""
+    context = ssl.create_default_context()
+    server = smtplib.SMTP_SSL(host, 465, context=context, timeout=10)
+    server.login(username, password)
+    server.sendmail(username, recipient, msg_str)
+    server.quit()
+
+
+def _send_via_tls_587(host: str, username: str, password: str, recipient: str, msg_str: str) -> None:
+    """Attempt STARTTLS delivery on port 587."""
+    server = smtplib.SMTP(host, 587, timeout=10)
+    server.ehlo()
+    context = ssl.create_default_context()
+    server.starttls(context=context)
+    server.ehlo()
+    server.login(username, password)
+    server.sendmail(username, recipient, msg_str)
+    server.quit()
+
+
 def _send_email(msg: MIMEMultipart) -> None:
     """
-    Send email via SMTP with high-speed direct SSL/STARTTLS.
+    Send email via SMTP with high resilience.
+    Tries direct SSL (Port 465) first; if blocked by cloud firewall, falls back to STARTTLS (Port 587).
     """
-    host = settings.SMTP_HOST or "smtp.gmail.com"
-    port = int(settings.SMTP_PORT or 465)
-    username = settings.SMTP_EMAIL or "mradulg2122@gmail.com"
-    password = settings.SMTP_PASSWORD
+    host = os.getenv("SMTP_HOST") or settings.SMTP_HOST or "smtp.gmail.com"
+    username = os.getenv("SMTP_EMAIL") or settings.SMTP_EMAIL or "mradulg2122@gmail.com"
+    raw_pwd = os.getenv("SMTP_PASSWORD") or settings.SMTP_PASSWORD or ""
+    
+    # Strip spaces and surrounding quotes if user copied 'xxxx xxxx xxxx xxxx'
+    password = raw_pwd.replace(" ", "").replace('"', '').replace("'", "").strip()
 
     if not username:
-        raise ValueError("SMTP_EMAIL must be set in .env")
+        raise ValueError("SMTP_EMAIL is not set in environment!")
     if not password:
-        raise ValueError("SMTP_PASSWORD must be set in backend/.env")
+        raise ValueError("SMTP_PASSWORD is not set in environment! Please configure SMTP_PASSWORD in Render/backend .env.")
 
     recipient = msg["To"]
-    logger.info("⚡ [SMTP] Connecting to %s:%d for %s ...", host, port, recipient)
+    msg_str = msg.as_string()
 
+    logger.info("⚡ [SMTP] Attempting delivery to %s via %s (Sender: %s)...", recipient, host, username)
+
+    # Method 1: Try Port 465 (Direct SSL)
     try:
-        # Use direct SSL for port 465 (faster, ~1s total) or STARTTLS for port 587
-        if port == 465:
-            context = ssl.create_default_context()
-            server = smtplib.SMTP_SSL(host, port, context=context, timeout=12)
-        else:
-            server = smtplib.SMTP(host, port, timeout=12)
-            server.ehlo()
-            context = ssl.create_default_context()
-            server.starttls(context=context)
-            server.ehlo()
+        _send_via_ssl_465(host, username, password, recipient, msg_str)
+        logger.info("✅ [SMTP] Dispatched instantly via Port 465 (SSL) to %s", recipient)
+        return
+    except Exception as err_465:
+        logger.warning("⚠️ [SMTP] Port 465 failed (%s). Falling back to Port 587 (STARTTLS)...", err_465)
 
-        server.login(username, password)
-        server.sendmail(username, recipient, msg.as_string())
-        server.quit()
-        logger.info("✅ [SMTP] Email dispatched instantly to %s", recipient)
-
-    except smtplib.SMTPAuthenticationError as e:
-        logger.error("❌ [SMTP] Authentication FAILED: %s", e)
-        raise
-    except Exception as e:
-        logger.error("❌ [SMTP] Delivery FAILED to %s: %s", recipient, e)
-        raise
+    # Method 2: Fallback to Port 587 (STARTTLS)
+    try:
+        _send_via_tls_587(host, username, password, recipient, msg_str)
+        logger.info("✅ [SMTP] Dispatched successfully via Port 587 (STARTTLS) to %s", recipient)
+        return
+    except Exception as err_587:
+        logger.error("❌ [SMTP] Both Port 465 and Port 587 failed for %s. Error: %s", recipient, err_587)
+        raise RuntimeError(f"SMTP delivery failed on both ports: {err_587}")
 
 
 def send_qr_email(
@@ -73,7 +91,7 @@ def send_qr_email(
         logger.error("QR image not found: %s", qr_image_path)
         raise FileNotFoundError(f"QR image not found: {qr_image_path}")
 
-    sender_email = settings.SMTP_EMAIL or "mradulg2122@gmail.com"
+    sender_email = os.getenv("SMTP_EMAIL") or settings.SMTP_EMAIL or "mradulg2122@gmail.com"
 
     msg = MIMEMultipart("mixed")
     msg["From"] = f"MANTHAN — Saturangle Debate Club <{sender_email}>"

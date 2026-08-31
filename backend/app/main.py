@@ -160,13 +160,22 @@ async def root():
 @app.get("/health", tags=["Health"])
 async def health_check():
     """Health check — reports backend, database, watcher, and email status."""
+    import os
     # Database
     db_ok = False
+    db_type = "sqlite"
+    total_participants = 0
     db = SessionLocal()
     try:
         from sqlalchemy import text
         db.execute(text("SELECT 1"))
         db_ok = True
+        total_participants = db.query(Participant).count()
+        db_url_str = str(db.get_bind().url)
+        if "postgresql" in db_url_str or "postgres" in db_url_str:
+            db_type = "postgresql (persistent)"
+        else:
+            db_type = "sqlite (local/temporary)"
     except Exception:
         pass
     finally:
@@ -175,21 +184,25 @@ async def health_check():
     # Watcher
     watcher_ok = watcher_is_running()
 
-    # Email (SMTP)
-    email_ok = False
-    try:
-        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=5) as s:
-            s.ehlo()
-            email_ok = True
-    except Exception:
-        pass
+    # Email (SMTP) config check
+    smtp_email = os.getenv("SMTP_EMAIL") or settings.SMTP_EMAIL or ""
+    smtp_pwd = os.getenv("SMTP_PASSWORD") or settings.SMTP_PASSWORD or ""
+    smtp_configured = bool(smtp_email and smtp_pwd.strip())
 
-    all_ok = db_ok and watcher_ok
     return {
-        "status": "healthy" if all_ok else "degraded",
-        "database": "connected" if db_ok else "disconnected",
+        "status": "healthy" if (db_ok and watcher_ok) else "degraded",
+        "database": {
+            "connected": db_ok,
+            "engine": db_type,
+            "total_participants": total_participants,
+            "max_limit": 100,
+        },
         "watcher": "running" if watcher_ok else "stopped",
-        "email": "connected" if email_ok else "disconnected",
+        "email_smtp": {
+            "configured": smtp_configured,
+            "sender": smtp_email if smtp_email else "NOT_SET",
+            "password_present": bool(smtp_pwd.strip()),
+        },
     }
 
 
