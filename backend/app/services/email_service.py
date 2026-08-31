@@ -109,7 +109,7 @@ Registration ID: {registration_id}
 Event: MANTHAN | The Freshers' Showdown
 Date: 03 September 2026
 Time: 01:00 PM – 03:00 PM
-Venue: GLA University, Mathura
+Venue: Arambh Hall AB-11 (CSED BLOCK)
 ---
 
 Your official entry QR Code pass is attached to this email.
@@ -163,7 +163,7 @@ Saturangle Debate Club & EventFlow Pro
         <div class="detail-row"><strong>Event:</strong> MANTHAN (Round 1: Speech · Round 2: Debate)</div>
         <div class="detail-row"><strong>Date:</strong> 03 September 2026</div>
         <div class="detail-row"><strong>Time:</strong> 01:00 PM – 03:00 PM</div>
-        <div class="detail-row"><strong>Venue:</strong> GLA University, Mathura</div>
+        <div class="detail-row"><strong>Venue:</strong> Arambh Hall AB-11 (CSED BLOCK)</div>
         <div class="detail-row"><strong>Club:</strong> Saturangle – The Debate Club</div>
       </div>
 

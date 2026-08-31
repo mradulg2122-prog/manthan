@@ -111,7 +111,7 @@ function Home() {
                   <MapPin className="h-4 w-4 text-[#C49A45] shrink-0" />
                   <div className="text-left">
                     <div className="text-[10px] font-bold uppercase tracking-wider text-[#627D98]">Venue</div>
-                    <div className="text-xs sm:text-sm font-bold font-sans">GLA University, Mathura</div>
+                    <div className="text-xs sm:text-sm font-bold font-sans">Arambh Hall AB-11 (CSED BLOCK)</div>
                   </div>
                 </div>
               </div>
