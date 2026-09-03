@@ -229,6 +229,50 @@ def export_attendance(
     )
 
 
+# ─── Send Thank You & Recruitment Email to Present Participants ───────────────
+@router.post("/send-thankyou")
+def send_thankyou_to_present_participants(
+    db: Session = Depends(get_db),
+    _=Depends(require_admin),
+):
+    """Send Thank You & Saturangle Club Hiring email to all participants marked Present."""
+    from app.services.email_service import send_thankyou_email
+
+    present_participants = (
+        db.query(Participant)
+        .filter(Participant.attendance_status == "Present")
+        .all()
+    )
+
+    if not present_participants:
+        return {
+            "success": False,
+            "message": "No participants found with 'Present' attendance status.",
+            "total_present": 0,
+            "dispatched": 0,
+        }
+
+    dispatched = 0
+    errors = []
+
+    for p in present_participants:
+        try:
+            send_thankyou_email(recipient_email=p.email, recipient_name=p.name)
+            dispatched += 1
+        except Exception as e:
+            logger.error("Failed to send thank-you email to %s: %s", p.email, e)
+            errors.append({"email": p.email, "error": str(e)})
+
+    return {
+        "success": True,
+        "message": f"Dispatched thank-you emails to {dispatched} of {len(present_participants)} present participant(s).",
+        "total_present": len(present_participants),
+        "dispatched": dispatched,
+        "failed": len(errors),
+        "errors": errors,
+    }
+
+
 # ─── Reset / Clear all participants ───────────────────────────────────────────
 @router.post("/reset")
 def reset_all_participants(db: Session = Depends(get_db), _=Depends(require_admin)):
@@ -241,4 +285,6 @@ def reset_all_participants(db: Session = Depends(get_db), _=Depends(require_admi
         "message": f"Successfully wiped {count} participant record(s). Database is ready for fresh start.",
         "deleted_count": count,
     }
+
+
 
